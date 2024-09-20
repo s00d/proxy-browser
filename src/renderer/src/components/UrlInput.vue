@@ -1,24 +1,31 @@
 <template>
-  <div class="url-input-container">
-    <input v-model="url" placeholder="Enter URL" class="url-input" @keyup.enter="updatePage" />
+  <div class="flex items-center space-x-2">
+    <input
+      v-model="url"
+      placeholder="Enter URL"
+      class="w-full p-2 bg-white text-black rounded border border-gray-300"
+      @keyup.enter="updatePage"
+    />
+    <button
+      @click="refreshPage"
+      class="p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded border border-gray-300"
+    >
+      🔄
+    </button>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 
-// Пропсы
 const props = defineProps<{
   initialUrl: string
 }>()
 
-// Эмиттер для отправки нового URL
-const emit = defineEmits(['update-url'])
+const emit = defineEmits(['update-url', 'refresh-page'])
 
-// URL введённый пользователем
 const url = ref(props.initialUrl)
 
-// Следим за изменением начального URL
 watch(
   () => props.initialUrl,
   (newUrl) => {
@@ -26,24 +33,15 @@ watch(
   }
 )
 
-// Функция для отправки нового URL
 const updatePage = () => {
   emit('update-url', url.value)
+}
+
+const refreshPage = () => {
+  emit('refresh-page')
 }
 </script>
 
 <style scoped>
-.url-input-container {
-  flex-grow: 1;
-  margin: 0 10px;
-}
-
-.url-input {
-  width: 100%;
-  padding: 5px;
-  background-color: #fff;
-  color: #000;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
+/* Tailwind используется, поэтому дополнительные стили не нужны */
 </style>
