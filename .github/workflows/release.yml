@@ -54,7 +54,6 @@ jobs:
             dist/*.AppImage
             dist/*.snap
             dist/*.deb
-            dist/*.zip
             dist/*.rpm
             dist/*.tar.gz
             dist/*.yml
