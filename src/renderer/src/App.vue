@@ -8,14 +8,18 @@
       @close-tab="closeTab"
     />
 
-    <UrlInput :initial-url="tabs[selectedTab].url" @update-url="updateUrl" @refresh-page="refreshPage" />
+    <UrlInput
+      :initial-url="tabs[selectedTab].url"
+      @update-url="updateUrl"
+      @refresh-page="refreshPage"
+    />
 
     <BrowserView :tabs="tabs" :selected-tab="selectedTab" @update-title="updateTabTitle" />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import BrowserHeader from './components/Header.vue'
 import BrowserView from './components/BrowserView.vue'
 import UrlInput from './components/UrlInput.vue'
@@ -49,20 +53,27 @@ const closeTab = (index: number) => {
   if (tabs.value.length <= 1) {
     return
   }
-  if (selectedTab.value == index) {
-    selectedTab.value = 0
-  }
+
   tabs.value.splice(index, 1)
 }
 
 const refreshPage = () => {
   // Здесь создаем механизм обновления путем перезапуска webview
-  const url = tabs.value[selectedTab.value].url;
-  tabs.value[selectedTab.value].url = ''; // Очистим URL, чтобы webview перезагрузился
+  const url = tabs.value[selectedTab.value].url
+  tabs.value[selectedTab.value].url = '' // Очистим URL, чтобы webview перезагрузился
   setTimeout(() => {
-    tabs.value[selectedTab.value].url = url; // Вернем URL для перезагрузки
-  }, 100);
+    tabs.value[selectedTab.value].url = url // Вернем URL для перезагрузки
+  }, 100)
 }
+
+onMounted(() => {
+  window.electron.ipcRenderer.on('apply-proxy-config', (_event, proxyConfig) => {
+    console.log('Received proxy config:', proxyConfig)
+
+    // Здесь вы можете применить настройки прокси к webview или сделать что-то еще
+    tabs.value[selectedTab.value].url = proxyConfig.targetHost
+  })
+})
 </script>
 
 <style scoped>

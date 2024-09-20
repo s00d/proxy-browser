@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.proxy-browser
 productName: proxy-browser
 directories:
   buildResources: build
