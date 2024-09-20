@@ -24,8 +24,12 @@ jobs:
         with:
           node-version: 20
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install Dependencies
-        run: npm install
+        run: pnpm install
 
       - name: build-linux
         if: matrix.os == 'ubuntu-latest'
@@ -50,7 +54,6 @@ jobs:
             dist/*.AppImage
             dist/*.snap
             dist/*.deb
-            dist/*.dmg
             dist/*.zip
             dist/*.rpm
             dist/*.tar.gz
