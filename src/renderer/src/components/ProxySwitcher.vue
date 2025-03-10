@@ -1,7 +1,7 @@
 <template>
   <div class="proxy-switcher" style="margin-right: 0">
     <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700" @click="toggleModal">
-      Config
+      {{ buttonLabel }}
     </button>
 
     <!-- Модалка для выбора и добавления прокси -->
@@ -21,7 +21,14 @@
             class="p-2 border border-gray-300 rounded"
             @change="changeProxy"
           >
-            <option value="default" disabled>No Proxy</option>
+            <option disabled value="">-- Select Proxy --</option>
+            <option value="default">No Proxy</option>
+            <option
+              v-if="selectedProxy !== 'default' && !proxies.some((p) => p.url === selectedProxy)"
+              :value="selectedProxy"
+            >
+              {{ selectedProxy }}
+            </option>
             <option v-for="(proxy, index) in proxies" :key="index" :value="proxy.url">
               {{ proxy.protocol }} - {{ proxy.url }} - {{ proxy.username }}
             </option>
@@ -31,11 +38,7 @@
         <!-- Добавление нового прокси -->
         <div class="mt-6 flex flex-col space-y-4">
           <h3 class="text-lg font-semibold">Add New Proxy</h3>
-          <select
-            id="proxy"
-            v-model="protocol"
-            class="p-2 border border-gray-300 rounded"
-          >
+          <select id="proxy" v-model="protocol" class="p-2 border border-gray-300 rounded">
             <option v-for="(value, index) in protocols" :key="index" :value="value">
               {{ value }}
             </option>
@@ -79,13 +82,13 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 // Прокси и их параметры
 const selectedProxy = ref('default')
 const protocols = ['HTTP', 'HTTPS', 'SOCKS4', 'SOCKS5']
-const proxies = ref<{ protocol: string, url: string; username?: string; password?: string }[]>([
-  { protocol: 'HTTP', url: 'my-proxy-server.com:8080' },
+const proxies = ref<{ protocol: string; url: string; username?: string; password?: string }[]>([
+  { protocol: 'HTTP', url: 'my-proxy-server.com:8080' }
 ])
 
 const isModalOpen = ref(false)
@@ -100,9 +103,30 @@ const toggleModal = () => {
 }
 
 const changeProxy = () => {
-  const selected = JSON.parse(JSON.stringify(proxies.value.find((proxy) => proxy.url === selectedProxy.value)))
-  window.electron.ipcRenderer.send('change-proxy', selected || { url: 'default' })
+  if (selectedProxy.value === 'default') {
+    // Если выбрали "No Proxy" → отправляем 'default'
+    window.electron.ipcRenderer.send('change-proxy', { url: 'default' })
+    return
+  }
+
+  // Иначе ищем совпадение
+  const selected = proxies.value.find((p) => p.url === selectedProxy.value)
+  if (!selected) {
+    // Если почему-то не нашли, отправляем default
+    window.electron.ipcRenderer.send('change-proxy', { url: 'default' })
+    return
+  }
+
+  window.electron.ipcRenderer.send('change-proxy', selected)
 }
+
+const buttonLabel = computed(() => {
+  if (selectedProxy.value === 'default') {
+    return 'Config'
+  } else {
+    return `${selectedProxy.value}`
+  }
+})
 
 const addProxy = () => {
   if (newProxyUrl.value) {
@@ -134,6 +158,10 @@ const loadProxies = () => {
 // Загружаем прокси при монтировании компонента
 onMounted(() => {
   loadProxies()
+  window.electron.ipcRenderer.on('select-proxy-config', (_event, proxyConfig) => {
+    console.log('Received select config:', proxyConfig)
+    selectedProxy.value = proxyConfig.url
+  })
 })
 </script>
 

@@ -92,8 +92,10 @@ app.whenReady().then(() => {
     console.log(`Received deeplink: ${url}`)
 
     // Парсим URL
-    const { hostname, port, username, password, searchParams } = new URL(url)
+    const { hostname, port, searchParams } = new URL(url)
     const targetHost = searchParams.get('host')
+    const username = searchParams.get('username')
+    const password = searchParams.get('password')
     const protocol = (searchParams.get('protocol') ?? 'HTTP').toString().toUpperCase()
 
     const proxyConfig: {
@@ -112,6 +114,8 @@ app.whenReady().then(() => {
 
     await mainWindow.webContents.session.setProxy(config)
     console.log('Proxy configuration updated:', config)
+
+    mainWindow.webContents.send('select-proxy-config', proxyConfig)
 
     // Если прокси требует авторизации, добавляем обработку login
     if (username && password) {

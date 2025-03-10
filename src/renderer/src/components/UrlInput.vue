@@ -1,43 +1,83 @@
 <template>
   <div class="flex items-center space-x-2">
-    <input
-      v-model="url"
-      placeholder="Enter URL"
-      class="w-full p-2 bg-white text-black rounded border border-gray-300"
-      @keyup.enter="updatePage"
-    />
 
-    <div class="flex items-center space-x-2 no-drag">
-      <button class="px-2 py-1 bg-transparent hover:bg-gray-700 rounded" @click="refreshPage">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
-          <path d="M11.293 2.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L13.586 8H13a5 5 0 100 10h4a1 1 0 110 2h-4a7 7 0 110-14h.586L11.293 3.707a1 1 0 010-1.414z"/>
-        </svg>
-      </button>
+    <!-- Обёртка для поля ввода, чтобы разместить иконку поверх (absolute) -->
+    <div class="relative w-full">
+      <!-- Поле ввода URL -->
+      <input
+        v-model="url"
+        placeholder="Enter URL"
+        class="w-full p-2 bg-white text-black rounded border border-gray-300 pr-10"
+        @keyup.enter="updatePage"
+      />
     </div>
+
+    <!-- Кнопка "Перейти" -->
+    <button
+      class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded"
+      @click="updatePage"
+    >
+      Go
+    </button>
+
+    <!-- Кнопка "Обновить" -->
+    <button
+      class="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-black rounded"
+      @click="refreshPage"
+    >
+      🔄
+    </button>
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
+
+/**
+ * Props:
+ * - initialUrl: начальное значение для поля
+ */
 const props = defineProps<{
   initialUrl: string
 }>()
 
+/**
+ * События:
+ * - update-url(url: string): когда пользователь жмёт Enter или «Go»
+ * - refresh-page(): когда жмут кнопку «🔄»
+ */
 const emit = defineEmits(['update-url', 'refresh-page'])
 
+// Локальное поле ввода
 const url = ref(props.initialUrl)
 
+// Следим за обновлениями initialUrl
 watch(
   () => props.initialUrl,
-  (newUrl) => {
-    url.value = newUrl
+  (newVal) => {
+    url.value = newVal
   }
 )
 
-const updatePage = () => emit('update-url', url.value)
-const refreshPage = () => emit('refresh-page')
+// При нажатии Enter или кнопки «Go»
+function updatePage() {
+  emit('update-url', url.value)
+}
+
+// При нажатии «Обновить»
+function refreshPage() {
+  emit('refresh-page')
+}
 </script>
 
 <style scoped>
-/* Tailwind используется, поэтому дополнительные стили не нужны */
+/* Дополнительные стили, если вы не используете Tailwind для анимации */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

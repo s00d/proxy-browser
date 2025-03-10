@@ -1,81 +1,87 @@
 <template>
-  <div class="browser-view flex-grow overflow-hidden">
+  <div class="browser-view flex-1 overflow-hidden">
+    <!-- Генерируем webview для каждого таба -->
     <webview
-      v-if="activeTab"
-      id="onlinesimWebView"
-      ref="webViewRef"
-      :src="activeTab.url"
+      v-for="(tab, i) in tabs"
+      v-show="i === selectedTab"
+      :key="i"
+      :src="tab.url"
       class="w-full h-full"
       allowpopups
       plugins
       disablewebsecurity
-      @did-finish-load="updateTitle"
+      @did-start-loading="(event) => onDidStartLoading(event, i)"
+      @did-stop-loading="(event) => onDidStopLoading(event, i)"
+      @did-finish-load="(event) => onDidFinishLoad(event, i)"
+      @did-fail-load="(event) => onDidFailLoad(event, i)"
     ></webview>
   </div>
 </template>
 
-<script lang="ts" setup>
-import { computed, onMounted } from 'vue'
-import type Electron from 'electron'
+<script setup lang="ts">
 import type { Tab } from '../App.vue'
 
 const props = defineProps<{
-  tabs: Tab[]
+  tabs: (Tab & { loading?: boolean; error?: string })[]
   selectedTab: number
 }>()
 
-const emit = defineEmits(['update-title'])
+/**
+ * Здесь мы не используем activeTab,
+ * а напрямую работаем с tabs[i], потому что
+ * у каждого webview есть свой индекс i.
+ */
 
-// Вычисляем активную вкладку
-const activeTab = computed(() => props.tabs[props.selectedTab])
-
-// Обновляем заголовок вкладки
-const updateTitle = (event: Event) => {
-  const webview = event.target as Electron.WebviewTag
-  const title = webview.getTitle()
-  emit('update-title', title)
+// При старте загрузки → ставим tab[i].loading = true
+function onDidStartLoading(_event: Event, i: number) {
+  props.tabs[i].loading = true
 }
 
-onMounted(() => {
-  const webview = document.querySelector<any>('#onlinesimWebView')
-  webview.addEventListener('permissionrequest', function (e) {
-    if (e.permission === 'notifications') {
-      e.request.allow() // Явно разрешаем уведомления
-    }
-  })
+// При остановке загрузки → tab[i].loading = false
+function onDidStopLoading(_event: Event, i: number) {
+  props.tabs[i].loading = false
+}
 
-  webview.addEventListener('did-fail-load', (event) => {
-    console.error('WebView failed to load', event)
-  })
+// При полной загрузке (did-finish-load) → можем обновить заголовок
+function onDidFinishLoad(event: Event, i: number) {
+  const webview = event.target as Electron.WebviewTag
+  const title = webview.getTitle()
+  // Можно, например, в родителя эмитить
+  // emit('update-title', { index: i, title })
+  props.tabs[i].title = title
+}
 
-  webview.addEventListener('will-navigate', (event) => {
-    console.log('WebView will navigate to', event.url)
-  })
+/**
+ * При ошибке → останавливаем лоадер,
+ * и можем сохранить описание ошибки в tab[i].error,
+ * а также подменить контент webview на errorHtml.
+ */
+function onDidFailLoad(event: any, i: number) {
+  props.tabs[i].loading = false
 
-  webview.addEventListener('did-navigate', (event) => {
-    console.log('WebView did navigate to', event.url)
-  })
+  console.error('[BrowserView] did-fail-load:', event)
 
-  // Использование webRequest для перехвата запросов и ответов
-  webview.addEventListener('dom-ready', () => {
-    const dev = process.env.NODE_ENV === 'development'
-    console.log(111, dev)
-    if (dev) {
-      webview.openDevTools()
-    }
-    console.log(webview)
-  })
-})
+  const webview = event.target as Electron.WebviewTag
+  const errorHtml = `
+    <html>
+      <head><title>Load error</title></head>
+      <body style="background: #f0f0f0; color: #333;">
+        <h2>Oops, something went wrong...</h2>
+        <p>Error code: ${event.errorCode}</p>
+        <p>${event.errorDescription}</p>
+      </body>
+    </html>
+  `
+  webview.executeJavaScript('document.documentElement.innerHTML = `' + errorHtml + '`;')
+
+  // Можно хранить информацию в tab[i].error
+  props.tabs[i].error = `Error ${event.errorCode}: ${event.errorDescription}`
+}
 </script>
 
 <style scoped>
 .browser-view {
-  flex-grow: 1;
+  flex: 1;
   overflow: hidden;
-}
-
-.webview {
-  width: 100%;
-  height: 100%;
 }
 </style>
