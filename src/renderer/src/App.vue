@@ -20,13 +20,7 @@
     />
 
     <!-- WebView, слушаем start/stop загрузки -->
-    <BrowserView
-      :tabs="tabs"
-      :selected-tab="selectedTab"
-      @update-title="updateTabTitle"
-    />
-
-    <!-- ... -->
+    <BrowserView :tabs="tabs" :selected-tab="selectedTab" @update-title="updateTabTitle" />
   </div>
 </template>
 

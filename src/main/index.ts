@@ -34,6 +34,8 @@ function createWindow() {
     }
   })
 
+  // win.webContents.openDevTools({ mode: 'detach' })
+
   win.on('ready-to-show', () => win.show())
   win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -66,7 +68,7 @@ function handleDeepLink(url: string) {
       password?: string | undefined
     } = {
       protocol: protocol,
-      url: `${hostname}:${port}`,
+      url: `${hostname}:${port}`
       // username: username ?? undefined,
       // password: password ?? undefined // used registerLoginHandler
     }
@@ -81,7 +83,9 @@ function handleDeepLink(url: string) {
       if (username && password) {
         registerLoginHandler({ username, password })
       }
-      mainWindow.webContents.send('apply-proxy-config', { targetHost })
+      setTimeout(() => {
+        mainWindow.webContents.send('apply-proxy-config', { targetHost })
+      })
     })
   } catch (err) {
     console.error('Invalid deep link:', err)
@@ -175,13 +179,15 @@ app.whenReady().then(() => {
   mainWindow = createWindow()
 
   // Windows/Linux: аргументы запуска
-  const deepArg = process.argv.find(arg => arg.startsWith('onproxy://'))
+  const deepArg = process.argv.find((arg) => arg.startsWith('onproxy://'))
   if (deepArg) deeplinkUrl = deepArg
 
-  if (deeplinkUrl) {
-    handleDeepLink(deeplinkUrl)
-    deeplinkUrl = null
-  }
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (deeplinkUrl) {
+      handleDeepLink(deeplinkUrl)
+      deeplinkUrl = null
+    }
+  })
 })
 
 // IPC handlers

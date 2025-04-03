@@ -117,7 +117,8 @@ const changeProxy = () => {
     return
   }
 
-  window.electron.ipcRenderer.send('change-proxy', selected)
+  const sanitized = JSON.parse(JSON.stringify(selected))
+  window.electron.ipcRenderer.send('change-proxy', sanitized)
 }
 
 const buttonLabel = computed(() => {
